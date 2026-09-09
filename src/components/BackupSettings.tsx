@@ -1,0 +1,8 @@
+import {getSession} from '../data/localAccess';
+import {useState,useSyncExternalStore} from 'react';
+import {exportLocalBackup,getSyncState,subscribeLocal} from '../data/localStore';
+export default function BackupSettings(){
+ const state=useSyncExternalStore(subscribeLocal,getSyncState);const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
+ async function download(){if(busy)return;setBusy(true);setError('');setNotice('');try{const snapshot=exportLocalBackup();const name=getSession()?.name||'التاجر';const pending=getSyncState().outbox.length;const {downloadBackupPdf}=await import('../data/backupPdf');await downloadBackupPdf(snapshot,name,pending);setNotice('تم تجهيز ملف PDF للتنزيل. احتفظ به في مكان آمن.');}catch(e){setError(e instanceof Error?e.message:'تعذر تجهيز ملف PDF.');}finally{setBusy(false);}}
+ return <section className="panel"><h2>النسخة الاحتياطية</h2><p>حمّل ملف PDF عربيًا مقسّمًا للقراءة والمراجعة، يحتوي العملاء والحوالات وسندات القبض والصرف وعمليات الصيرفة وأسعار العملات والمحافظ الموجودة على هذا الجهاز.</p><p className="tl-disclaimer">لا يتضمن الملف كلمة المرور أو جلسة الدخول. قد لا يشمل تعديلات أجهزة أخرى لم تصل بعد؛ راجع حالة المزامنة في الرئيسية. الملف غير مشفّر، فاحتفظ به في مكان آمن.</p>{state.outbox.length>0&&<p role="status">توجد {state.outbox.length} عملية محلية بانتظار المزامنة؛ الملف يعكس البيانات الحالية على هذا الجهاز.</p>}<button className="tl-button" type="button" onClick={download} disabled={busy} style={{minHeight:48}}>{busy?'جارٍ تجهيز PDF…':'تحميل نسخة احتياطية PDF'}</button>{error&&<p className="tl-error" role="alert">{error}</p>}{notice&&<p className="tl-notice" role="status">{notice}</p>}</section>;
+}

@@ -1,7 +1,7 @@
 {
   "name": "exchange-frontend",
   "private": true,
-  "version": "0.2.3",
+  "version": "0.2.4",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -14,6 +14,8 @@
     "@sentry/react": "^10.73.0",
     "convex": "^1.45.0",
     "gsap": "^3.15.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "motion": "^13.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

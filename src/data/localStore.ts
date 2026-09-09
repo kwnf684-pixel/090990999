@@ -92,3 +92,9 @@ window.addEventListener('storage',e=>{if(tenant&&e.key===key()){try{state=read()
 export function localDate(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,19);}
 
 window.addEventListener('tenant-deleted',event=>{const id=(event as CustomEvent<{merchantId:string}>).detail?.merchantId;if(!id)return;if(id===tenant)activateTenant(null);localStorage.removeItem(`almustaqbal-tenant-data-v2:${id}`);});
+
+export function exportLocalBackup(){
+ if(!tenant||failure)throw Error('تعذر قراءة بيانات الحساب بأمان.');
+ const data=structuredClone(read().data);
+ return {format:'almustaqbal-backup',version:1,tenantId:tenant,createdAt:new Date().toISOString(),data};
+}
