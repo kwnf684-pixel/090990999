@@ -53,9 +53,6 @@ export const groups = [
     icon: "user",
     items: [
       ["الإعدادات", "/settings"],
-      ["معلومات الحساب", "/account"],
-      ["معلومات الاشتراك", "/account/subscription"],
-      ["الأجهزة", "/account/devices"],
     ],
   },
 ];

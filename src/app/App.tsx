@@ -125,7 +125,7 @@ export default function App() {
             mode === "mobile" ? setDrawerOpen(true) : setCollapsed(!collapsed)
           }
         />
-        <SubscriptionStatus/><CloudSync/><UpdateNotification />
+        <SubscriptionStatus visible={pathname==="/dashboard"}/><CloudSync visible={pathname==="/dashboard"}/><UpdateNotification />
         {localError()&&<p className="tl-error" role="alert">{localError()}</p>}
         <PageTransition key={pathname} id="main-content">
           <Routes>

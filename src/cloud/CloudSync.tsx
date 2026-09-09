@@ -7,7 +7,7 @@ import {FinanceModal} from '../components/FinanceViews';
 import './sync.css';
 type Pull={cursor:number;changes:SyncChange[];hasMore?:boolean};
 type Push={ok:true;cursor:number}|{ok:false;conflicts:SyncChange[]};
-export default function CloudSync(){
+export default function CloudSync({visible=true}:{visible?:boolean}){
  const state=useSyncExternalStore(subscribeLocal,getSyncState);
  const identity=useSyncExternalStore(subscribeAccess,()=>getSession()?.merchantId||'');
  const [status,setStatus]=useState('جارٍ تجهيز المزامنة');const [details,setDetails]=useState(false);
@@ -50,5 +50,6 @@ export default function CloudSync(){
   const unsubscribe=subscribeLocal(request);window.addEventListener('online',request);window.addEventListener('offline',request);window.addEventListener('focus',request);document.addEventListener('visibilitychange',request);schedule(0);
   return()=>{stopped=true;clearTimeout(timeout);clearTimeout(slowTimer);unsubscribeConnection?.();unsubscribe();window.removeEventListener('online',request);window.removeEventListener('offline',request);window.removeEventListener('focus',request);document.removeEventListener('visibilitychange',request);};
  },[identity]);
+ if(!visible)return null;
  return <aside className="cloud-sync" aria-label="حالة المزامنة"><span role="status">{status}</span><small>{state.outbox.length?`${state.outbox.length} عملية بانتظار الإرسال`:''}</small>{state.conflict.length>0&&<button type="button" onClick={()=>setDetails(true)}>مراجعة التعارض</button>}{details&&<FinanceModal title="مراجعة تعارض البيانات" close={()=>setDetails(false)}><p>عُدّلت هذه السجلات على جهاز آخر. اختر النسخة التي تريد اعتمادها. تُحفظ نسخة من التعديلات المحلية السابقة في أرشيف هذا الجهاز.</p>{state.conflict.map(c=><section key={c.collection+c.id}><h3 dir="ltr">{c.collection} · {c.id}</h3><p>نسخة السحابة</p><pre className="cloud-conflict">{JSON.stringify(c.value,null,2)}</pre><p>تعديلات هذا الجهاز</p><pre className="cloud-conflict">{JSON.stringify(state.outbox.flatMap(o=>o.changes).filter(r=>r.collection===c.collection&&r.id===c.id).map(r=>r.value),null,2)}</pre></section>)}<div className="cloud-actions"><button type="button" onClick={()=>{resolveConflict('local');setDetails(false);}}>اعتماد تعديلات هذا الجهاز</button><button type="button" onClick={()=>{resolveConflict('remote');setDetails(false);}}>اعتماد نسخة السحابة</button><button type="button" onClick={()=>setDetails(false)}>مراجعة لاحقًا</button></div></FinanceModal>}</aside>;
 }
