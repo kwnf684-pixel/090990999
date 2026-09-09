@@ -1,3 +1,4 @@
+import LocalAccess from './components/LocalAccess';
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
@@ -9,8 +10,8 @@ import './components/premium/premium.css';
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <App />
-      <InstallPrompt />
+      <LocalAccess><App />
+      <InstallPrompt /></LocalAccess>
     </BrowserRouter>
   </React.StrictMode>,
 );

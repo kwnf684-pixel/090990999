@@ -1,3 +1,4 @@
+import AccessSettings from '../pages/AccessSettings';
 import {useLocalData,localError} from '../data/localStore';
 import UpdateNotification from '../updates/UpdateNotification';
 import {PageTransition} from '../components/premium/MotionUI';
@@ -127,6 +128,7 @@ export default function App() {
         <PageTransition key={pathname} id="main-content">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/settings" element={<AccessSettings theme={theme} setTheme={setTheme}/>} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/reports/daily" element={<PeriodReport key="daily" mode="daily" />} /><Route path="/reports/monthly" element={<PeriodReport key="monthly" mode="monthly" />} /><Route path="/reports/yearly" element={<PeriodReport key="yearly" mode="yearly" />} /><Route path="/exchange/rates" element={<ExchangeRates />} /><Route path="/exchange/history" element={<ExchangeTransferReport key="exchange" />} /><Route path="/exchange/buy" element={<ExchangeTrade key="buy" />} /><Route path="/exchange/sell" element={<ExchangeTrade key="sell" sell />} /><Route path="/cashbox" element={<Cashbox />} />
 
@@ -182,7 +184,7 @@ export default function App() {
               .filter(
                 (page) =>
                   ![
-                    "/cashbox/close-day", "/reports/daily", "/reports/monthly", "/reports/yearly", "/reports/customers", "/reports/partners", "/reports/cashbox", "/exchange/rates", "/exchange/history", "/reports/transfers", "/exchange/buy", "/exchange/sell", "/transfers/new",
+                    "/settings", "/cashbox/close-day", "/reports/daily", "/reports/monthly", "/reports/yearly", "/reports/customers", "/reports/partners", "/reports/cashbox", "/exchange/rates", "/exchange/history", "/reports/transfers", "/exchange/buy", "/exchange/sell", "/transfers/new",
                     "/transfers/pending", "/transfers/cancelled",
                     "/transfers/undelivered",
                     "/customers",

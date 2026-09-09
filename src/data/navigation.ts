@@ -52,6 +52,7 @@ export const groups = [
     label: "الحساب",
     icon: "user",
     items: [
+      ["الإعدادات", "/settings"],
       ["معلومات الحساب", "/account"],
       ["معلومات الاشتراك", "/account/subscription"],
       ["الأجهزة", "/account/devices"],
