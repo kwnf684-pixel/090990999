@@ -1,3 +1,5 @@
+import {useSyncExternalStore} from 'react';
+import {getSession,subscribeAccess,accessVersion} from '../data/localAccess';
 import {PremiumButton,AnimatedInput} from './premium/MotionUI';
 import Icon from "./Icon";
 export default function TopBar({
@@ -15,6 +17,8 @@ export default function TopBar({
   mobile: boolean;
   drawerOpen: boolean;
 }) {
+  useSyncExternalStore(subscribeAccess,accessVersion);
+  const merchant=getSession();
   return (
     <header className="topbar">
       <div className="topbar-start">
@@ -45,7 +49,7 @@ export default function TopBar({
       <div className="topbar-end">
         <span className="local-tag">
           <i />
-          بيانات محلية
+          محلي + سحابي
         </span>
         <PremiumButton
           className="icon-button"
@@ -59,8 +63,8 @@ export default function TopBar({
         <div className="user-info">
           <span className="avatar">أ م</span>
           <div>
-            <b>المستخدم المحلي</b>
-            <small>حفظ محلي على الجهاز</small>
+            <b>{merchant?.name||'التاجر'}</b>
+            <small>حساب التاجر</small>
           </div>
         </div>
       </div>

@@ -1,3 +1,5 @@
+import SubscriptionStatus from '../cloud/SubscriptionStatus';
+import CloudSync from '../cloud/CloudSync';
 import AccessSettings from '../pages/AccessSettings';
 import {useLocalData,localError} from '../data/localStore';
 import UpdateNotification from '../updates/UpdateNotification';
@@ -123,7 +125,7 @@ export default function App() {
             mode === "mobile" ? setDrawerOpen(true) : setCollapsed(!collapsed)
           }
         />
-        <UpdateNotification />
+        <SubscriptionStatus/><CloudSync/><UpdateNotification />
         {localError()&&<p className="tl-error" role="alert">{localError()}</p>}
         <PageTransition key={pathname} id="main-content">
           <Routes>

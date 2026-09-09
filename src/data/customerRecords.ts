@@ -37,7 +37,7 @@ export function saveCustomer(id:string|null,details:Pick<Customer,'name'|'phone'
    const delta=customerCashDelta(data,id);
    return {...data,customers:data.customers.map(c=>c.id===id?{...c,...details,balances:details.balances?{...c.balances,...Object.fromEntries(Object.entries(details.balances).map(([currency,current])=>[currency,round(current-(delta[currency]||0))]))}:c.balances,updated:date}:c)};
   }
-  return {...data,customers:[{id:`C-${Math.max(1000,...data.customers.map(c=>Number(c.id.slice(2))||1000))+1}`,name:details.name.trim(),phone:details.phone,address:details.address,notes:details.notes,active:details.active??true,created:date,updated:date,lastActivity:'—',balances:details.balances??{USD:0,IQD:0}},...data.customers]};
+  return {...data,customers:[{id:`C-${crypto.randomUUID()}`,name:details.name.trim(),phone:details.phone,address:details.address,notes:details.notes,active:details.active??true,created:date,updated:date,lastActivity:'—',balances:details.balances??{USD:0,IQD:0}},...data.customers]};
  });
 }
 export function toggleCustomer(id:string){return updateLocal(data=>({...data,customers:data.customers.map(c=>c.id===id?{...c,active:!c.active,updated:localDate()}:c)}));}

@@ -41,7 +41,7 @@ export default function CashVoucher({
   const title = payment ? "سند صرف" : "سند قبض";
   const [id,setId] = useState(
     () =>
-      `${payment ? "PAY" : "REC"}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+      `${payment ? "PAY" : "REC"}-${crypto.randomUUID().toUpperCase()}`,
   );
   const [values, setValues] = useState<Values>(empty);
   const [errors, setErrors] = useState<Partial<Record<keyof Values, string>>>(
@@ -264,7 +264,7 @@ export default function CashVoucher({
             type="button"
             className="tl-button"
             onClick={() => {
-              setId(`${payment ? "PAY" : "REC"}-${crypto.randomUUID().slice(0,8).toUpperCase()}`);
+              setId(`${payment ? "PAY" : "REC"}-${crypto.randomUUID().toUpperCase()}`);
               setValues(empty());
               setErrors({});
               setSaved(null);

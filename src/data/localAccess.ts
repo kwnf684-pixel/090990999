@@ -1,15 +1,38 @@
-const key='almustaqbal-local-access-v1';
-const sessionKey='almustaqbal-local-session-v1';
-type Credential={phone:string;salt:string;hash:string};
-const initial:Credential={phone:'07700197478',salt:'almustaqbal-local-initial-v1',hash:'64d3cc1c15f2003733d24b64797df225245d12c4827a9e2403157984e5cffc26'};
-function credential():Credential{const saved=localStorage.getItem(key);if(!saved)return initial;const c=JSON.parse(saved);if(typeof c.phone!=='string'||typeof c.salt!=='string'||typeof c.hash!=='string')throw Error('تعذر قراءة إعدادات الدخول المحلية.');return c;}
-async function hash(password:string,salt:string){const bytes=new TextEncoder();const material=await crypto.subtle.importKey('raw',bytes.encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:bytes.encode(salt),iterations:150000,hash:'SHA-256'},material,256);return Array.from(new Uint8Array(bits),b=>b.toString(16).padStart(2,'0')).join('');}
-export function isUnlocked(){try{return sessionStorage.getItem(sessionKey)===credential().hash;}catch{return false;}}
-export async function loginLocal(phone:string,password:string){const c=credential();if(phone.trim().replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))!==c.phone||await hash(password,c.salt)!==c.hash)return false;if(!localStorage.getItem(subscriptionKey))localStorage.setItem(subscriptionKey,subscriptionEnd());sessionStorage.setItem(sessionKey,c.hash);window.dispatchEvent(new Event('local-access'));return true;}
-export async function changeLocalPassword(current:string,next:string){const c=credential();if(await hash(current,c.salt)!==c.hash)return false;const salt=crypto.randomUUID();const updated={...c,salt,hash:await hash(next,salt)};localStorage.setItem(key,JSON.stringify(updated));sessionStorage.setItem(sessionKey,updated.hash);window.dispatchEvent(new Event('local-access'));return true;}
-export function logoutLocal(){sessionStorage.removeItem(sessionKey);window.dispatchEvent(new Event('local-access'));}
-export function subscribeAccess(listener:()=>void){window.addEventListener('storage',listener);window.addEventListener('local-access',listener);return()=>{window.removeEventListener('storage',listener);window.removeEventListener('local-access',listener);};}
+import {activateTenant,setLocalWritePermission} from './localStore';
+import {client,ref} from '../cloud/client';
+export type CloudSession={token:string;merchantId:string;name:string;expiresAt:number;sessionExpiresAt:number;role:'admin'|'merchant';offlineUntil:number};
+const role='merchant' as CloudSession['role'];
+const key='almustaqbal-merchant-cloud-session-v1';
+const listeners=new Set<()=>void>();
+let session:CloudSession|null=null;
+let checked=false;
+let failure='';
+// Only retain the current credential in page memory, never browser storage or cloud responses.
+let rememberedPassword:{token:string;value:string}|null=null;
+export function currentSessionPassword(){return session&&rememberedPassword?.token===session.token?rememberedPassword.value:'';}
+try{const raw=localStorage.getItem(key);if(raw){const s=JSON.parse(raw);if(typeof s.token==='string'&&s.role===role&&Number.isFinite(s.offlineUntil)&&Number.isFinite(s.sessionExpiresAt))session=s;}}catch{failure='تعذر قراءة جلسة الدخول المحفوظة.';}
+let version=0;export const accessVersion=()=>version;const emit=()=>{version++;listeners.forEach(fn=>fn());};
+export function getSession(){return session;}
+export function accessError(){return failure;}
+export function subscribeAccess(fn:()=>void){listeners.add(fn);return()=>{listeners.delete(fn);};}
+export function isUnlocked(){return !!session&&(checked||role==='merchant')&&Date.now()<session.sessionExpiresAt;}
+function persist(next:CloudSession|null){if(!next||rememberedPassword?.token!==next.token)rememberedPassword=null;if(next)localStorage.setItem(key,JSON.stringify(next));else localStorage.removeItem(key);session=next;activateTenant(next?.merchantId||null);emit();}
+export async function loginLocal(phone:string,password:string){if(!client)throw Error('لم يتم ضبط اتصال الخادم.');const result=await client.action(ref<'action'>('auth:login'),{role,phone,password}) as Omit<CloudSession,'offlineUntil'>;checked=true;failure='';persist({...result,offlineUntil:Math.min(Date.now()+86400000,result.sessionExpiresAt,result.sessionExpiresAt)});rememberedPassword={token:result.token,value:password};emit();watchSession();return true;}
+let unwatch:(()=>void)|undefined;
+function watchSession(){unwatch?.();if(!client||!session)return;const token=session.token;const watch=client.watchQuery(ref<'query'>('access:status'),{token});unwatch=watch.onUpdate(()=>{try{const result=watch.localQueryResult();if(result===undefined)return;checked=true;if(result.status!=='active'&&result.status!=='expired'){failure=result.status==='frozen'?'الحساب مجمّد. تواصل مع الإدارة.':result.status==='deleted'?'تم حذف الحساب بواسطة الإدارة.':'انتهت الجلسة أو مهلة الاشتراك. تواصل مع الإدارة.';if(result.status==='deleted'&&session)window.dispatchEvent(new CustomEvent('tenant-deleted',{detail:{merchantId:session.merchantId}}));persist(null);unwatch?.();return;}if(session?.token===token)persist({...session,...result,token,offlineUntil:Math.min(Date.now()+86400000,result.sessionExpiresAt,result.sessionExpiresAt)});}catch{failure='تعذر التحقق من الحساب. تحقق من اتصالك.';emit();}});}
+export async function logoutLocal(){const previous=session;persist(null);checked=false;unwatch?.();if(client&&previous)try{await client.mutation(ref<'mutation'>('access:logout'),{token:previous.token});}catch{/* Session expires server-side; this device is signed out. */}}
+export async function revokeSession(){persist(null);checked=false;unwatch?.();}
+export async function changeLocalPassword(current:string,next:string){if(!client||!session)throw Error('سجّل الدخول أولًا.');const token=session.token;await client.action(ref<'action'>('auth:changePassword'),{token,current,password:next});if(session?.token===token){rememberedPassword={token,value:next};emit();}return true;}
+export function subscriptionEnd(){return session?new Date(session.expiresAt).toISOString():'';}
+export function subscriptionRemaining(){return session?Math.max(0,Math.ceil((session.expiresAt-Date.now())/86400000)):null;}
+activateTenant(session?.merchantId||null);
+watchSession();
+window.addEventListener('storage',e=>{if(e.key===key){try{session=e.newValue?JSON.parse(e.newValue):null;checked=false;activateTenant(session?.merchantId||null);watchSession();emit();}catch{session=null;emit();}}});
+window.addEventListener('online',()=>{watchSession();emit();});
+window.addEventListener('offline',emit);
+setInterval(emit,30000);
 
-const subscriptionKey='almustaqbal-subscription-end-v1';
-export function subscriptionEnd(){return localStorage.getItem(subscriptionKey)||'2026-10-09T23:59:59+03:00';}
-export function subscriptionRemaining(){const end=new Date(subscriptionEnd());if(!Number.isFinite(end.getTime()))return null;const today=new Date();const endDate=new Date(end.getFullYear(),end.getMonth(),end.getDate());const startDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());return Math.max(0,Math.round((endDate.getTime()-startDate.getTime())/86400000));}
+window.addEventListener('cloud-access-rejected',()=>{watchSession();});
+
+setLocalWritePermission(()=>{if(!session||!isUnlocked())return 'سجّل الدخول للتحقق من صلاحية الحساب.';if(Date.now()>=session.expiresAt)return 'أنت غير مشترك. جدّد الاشتراك لإضافة أو تعديل البيانات.';if(Date.now()>=session.offlineUntil)return 'اتصل بالإنترنت لتجديد صلاحية العمل دون اتصال. بياناتك محفوظة ويمكنك عرضها.';return true;});
+setInterval(()=>{if(checked&&session&&client?.connectionState().isWebSocketConnected&&Date.now()<session.sessionExpiresAt){persist({...session,offlineUntil:Math.min(Date.now()+86400000,session.sessionExpiresAt)});}},3600000);

@@ -1,3 +1,4 @@
+import {activateOfflineUpdate} from '../cloud/offlineShell';
 export const currentVersion = __APP_VERSION__;
 export interface Release {version:string;title:string;notes:string[];publishedAt:string}
 function parse(version:string){
@@ -31,5 +32,5 @@ export async function reloadLatest(){
  const url=new URL(window.location.href);url.searchParams.set('_appUpdate',String(Date.now()));
  const probe=new URL(import.meta.env.BASE_URL,window.location.origin);probe.searchParams.set('_appUpdate',String(Date.now()));
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);
- try{const response=await fetch(probe,{cache:'reload',signal:controller.signal});if(!response.ok)throw new Error('Update unavailable');await response.text();window.location.replace(url.href);}finally{clearTimeout(timer);}
+ try{const response=await fetch(probe,{cache:'reload',signal:controller.signal});if(!response.ok)throw new Error('Update unavailable');await response.text();await activateOfflineUpdate();window.location.replace(url.href);}finally{clearTimeout(timer);}
 }

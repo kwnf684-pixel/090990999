@@ -104,8 +104,8 @@ export default function Sidebar({
       <div className="sidebar-footer">
         <Icon name="shield" />
         <div>
-          <b>نسخة استعراضية</b>
-          <small>بيانات محفوظة محليًا</small>
+          <b>مساحة التاجر</b>
+          <small>حفظ محلي ومزامنة سحابية</small>
         </div>
         <span title={`الإصدار ${currentVersion}`}>v{currentVersion}</span>
       </div>

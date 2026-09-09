@@ -51,7 +51,7 @@ function Section({
 export default function NewTransfer() {
   const currencies=useCurrencies();
   const [query]=useSearchParams();const incoming=query.get('direction')==='incoming';
-  const [transferId,setTransferId]=useState(()=>`${incoming?'IN':'OUT'}-${crypto.randomUUID().slice(0,8)}`);
+  const [transferId,setTransferId]=useState(()=>`${incoming?'IN':'OUT'}-${crypto.randomUUID()}`);
   const [values, setValues] = useState<Values>({ ...blank });
   const [errors, setErrors] = useState<Errors>({});
   const [saved, setSaved] = useState(false);
@@ -171,7 +171,7 @@ export default function NewTransfer() {
       setPreview(true);
   }
   function clear() {
-    setTransferId(`${incoming?'IN':'OUT'}-${crypto.randomUUID().slice(0,8)}`);
+    setTransferId(`${incoming?'IN':'OUT'}-${crypto.randomUUID()}`);
     setValues({ ...blank });
     setErrors({});
     setSaved(false);
