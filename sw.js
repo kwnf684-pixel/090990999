@@ -1,4 +1,4 @@
-const PREFIX='almustaqbal-shell-'+encodeURIComponent(self.registration.scope)+'-';const CACHE=PREFIX+'mtuchorv';
+const PREFIX='almustaqbal-shell-'+encodeURIComponent(self.registration.scope)+'-';const CACHE=PREFIX+'mtud5wap';
 const BASE=self.registration.scope;const FILES=["assets/gsap-806FECi5.js","assets/index-BpuppsvF.css","assets/index-DokQjvcY.js","assets/motion-BuEekHAz.js","assets/noto-sans-arabic-arabic-wght-normal-BhzieyvS.woff2","assets/noto-sans-arabic-latin-ext-wght-normal-CIz31GGw.woff2","assets/noto-sans-arabic-latin-wght-normal-BQEJrIpl.woff2","assets/noto-sans-arabic-math-wght-normal-pS2d8anF.woff2","assets/noto-sans-arabic-symbols-wght-normal-BJ6p-EzA.woff2","assets/rolldown-runtime-CbXtAM7H.js","icon-192.png","icon-512.png","index.html","manifest.webmanifest"].map(f=>new URL(f,BASE).href);
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{const names=await caches.keys();await Promise.all(names.filter(n=>n.startsWith(PREFIX)&&n!==CACHE).map(n=>caches.delete(n)));await self.clients.claim();})()));
