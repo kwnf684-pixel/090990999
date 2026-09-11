@@ -1,3 +1,4 @@
+import {useHiddenMenus} from '../data/menuVisibility';
 import {currentVersion} from '../updates/versionService';
 import {motion,useReducedMotion} from 'motion/react';
 import { useState } from "react";
@@ -15,7 +16,7 @@ export default function Sidebar({
   onNavigate?: () => void;
   onClose?: () => void;
 }) {
-  const reduced=useReducedMotion();
+  const reduced=useReducedMotion();const hidden=useHiddenMenus();
   const { pathname } = useLocation();
   const [open, setOpen] = useState<string[]>(["الحوالات"]);
   return (
@@ -64,7 +65,7 @@ export default function Sidebar({
           <Icon name="dashboard" />
           <span>الرئيسية</span>
         </NavLink>
-        {groups.map((g) => {
+        {groups.filter(g=>!hidden.includes(g.label)).map((g) => {
           const active = g.items.some(([, p]) => p === pathname);
           const expanded = open.includes(g.label) || active;
           return (

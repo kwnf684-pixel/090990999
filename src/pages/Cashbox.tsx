@@ -1,3 +1,4 @@
+import CashBalanceEditor from '../components/CashBalanceEditor';
 import {useCashLedger} from '../data/cashLedger';
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -50,7 +51,7 @@ export default function Cashbox() {
       <p className="tl-disclaimer">
         اليوم: {cashboxDay}. سندات القبض والصرف المحفوظة تحدّث الصندوق الرئيسي محليًا على هذا المتصفح. تبقى البيانات محفوظة بعد إعادة فتح المتصفح.
       </p>
-      <div className="tl-stats cashbox-stats">
+      <CashBalanceEditor/><div className="tl-stats cashbox-stats">
         {[
           [
             "رصيد الدولار",

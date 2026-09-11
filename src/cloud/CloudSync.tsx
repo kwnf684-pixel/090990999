@@ -1,3 +1,4 @@
+import inventoryCloud from '../../inventory-cloud.json';
 import {useEffect,useState,useSyncExternalStore} from 'react';
 import {client,ref} from './client';
 import {getSession,subscribeAccess} from '../data/localAccess';
@@ -32,7 +33,7 @@ export default function CloudSync({visible=true}:{visible?:boolean}){
     if(session.expiresAt<=Date.now()){setStatus('الاشتراك منتهٍ · عرض البيانات متاح والعمليات المعلقة محفوظة');return;}
     let count=0;
     while(!stopped&&connected&&getSyncState().tenantId===identity&&getSyncState().outbox.length&&count++<20){
-     const operation=getSyncState().outbox[0];const result=await client.mutation(ref<'mutation'>('sync:push'),{...sessionArgs,...operation}) as Push;
+     const operation=getSyncState().outbox[0];if(!inventoryCloud.enabled&&operation.changes.some(c=>c.collection.startsWith('inventory'))){setStatus('المخزون محفوظ محليًا · بانتظار تفعيل المزامنة بعد إكمال الربط');return;}const result=await client.mutation(ref<'mutation'>('sync:push'),{...sessionArgs,...operation}) as Push;
      if(!result.ok){recordConflict(identity,result.conflicts);setStatus('توجد تعديلات متعارضة تحتاج مراجعتك');return;}
      acknowledgeOperation(identity,operation.operationId,result.cursor);
     }

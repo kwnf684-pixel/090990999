@@ -1,10 +1,15 @@
+import {validInventoryTransactions} from './inventoryLedger';
+import type {InventoryTransaction} from './inventoryLedger';
 import {useSyncExternalStore} from 'react';
 import type {Customer} from './customerRecords';
 import type {TransferRecord} from './transferRecords';
 import type {LocalRate} from './currencyStore';
 import type {CashPosting} from './cashLedger';
 export type ExchangeEntry={id:string;date:string;type:string;party:string;currency:string;amount:number;rate:number;counter:string;counterpart:number;commission:number;box:string;user:string;status:string;description:string;notes:string};
-export type LocalData={schema:1;wallets?:{id:string;name:string;balance:number}[];customers:Customer[];transfers:TransferRecord[];rates:LocalRate[];rateLog?:LocalRate[];cash:CashPosting[];exchange:ExchangeEntry[]};
+export type InventoryCustomer={id:string;name:string;phone:string;details:string;transactions?:InventoryTransaction[]};
+export type InventorySale={id:string;customerId:string;customerName:string;date:string;currency:string;total:number;lines:{itemId:string;name:string;quantity:number;purchasePrice:number;salePrice:number}[]};
+export type InventoryItem={id:string;name:string;quantity:number;purchasePrice:number;salePrice:number};
+export type LocalData={schema:1;inventory?:InventoryItem[];inventorySales?:InventorySale[];inventoryCustomers?:InventoryCustomer[];wallets?:{id:string;name:string;balance:number}[];customers:Customer[];transfers:TransferRecord[];rates:LocalRate[];rateLog?:LocalRate[];cash:CashPosting[];exchange:ExchangeEntry[]};
 const empty=():LocalData=>({schema:1,customers:[],transfers:[],rates:[],cash:[],exchange:[]});
 function valid(d:LocalData){
  const strings=(r:object,keys:string[])=>keys.every(k=>typeof (r as Record<string,unknown>)[k]==='string');
@@ -16,13 +21,16 @@ function valid(d:LocalData){
  &&d.transfers.every(r=>strings(r,['id','date','sender','recipient','currency','status','direction','office','senderPhone','recipientPhone','senderAddress','recipientAddress','notes','reason','voucher','deliveredAt'])&&numbers(r,['amount','commission']))
  &&d.exchange.every(r=>strings(r,['id','date','party','currency','counter','type','status','box','user','description','notes'])&&numbers(r,['amount','rate','commission','counterpart']))
  &&d.rates.every(r=>strings(r,['id','base','counter','name','user','updated','notes'])&&numbers(r,['buy','sell']))
+ &&(!d.inventorySales||Array.isArray(d.inventorySales)&&unique(d.inventorySales)&&d.inventorySales.every(r=>r&&strings(r,['id','customerId','customerName','date','currency'])&&Number.isFinite(r.total)&&r.total>0&&Array.isArray(r.lines)&&r.lines.length>0&&r.lines.every(l=>l&&strings(l,['itemId','name'])&&[l.quantity,l.purchasePrice,l.salePrice].every(n=>Number.isFinite(n)&&n>=0)&&l.quantity>0)))
+ &&(!d.inventoryCustomers||Array.isArray(d.inventoryCustomers)&&unique(d.inventoryCustomers)&&d.inventoryCustomers.every(r=>r&&strings(r,['id','name','phone','details'])&&r.name.trim()&&r.phone.trim()&&validInventoryTransactions(r.transactions||[])))
+ &&(!d.inventory||Array.isArray(d.inventory)&&unique(d.inventory)&&d.inventory.every(r=>r&&strings(r,['id','name'])&&r.name.trim()&&[r.quantity,r.purchasePrice,r.salePrice].every(n=>Number.isFinite(n)&&n>=0&&n<=1e12)))
  &&(!d.wallets||Array.isArray(d.wallets)&&d.wallets.every(r=>r&&strings(r,['id','name'])&&numbers(r,['balance'])));
 }
 export type SyncChange={collection:string;id:string;value:unknown|null;version:number};
 export type PendingChange={collection:string;id:string;value:unknown|null;baseVersion:number};
 export type PendingOperation={operationId:string;changes:PendingChange[]};
 type Envelope={format:2;tenantId:string;data:LocalData;cursor:number;versions:Record<string,number>;shadow:Record<string,SyncChange>;outbox:PendingOperation[];conflict:SyncChange[];archive:PendingOperation[]};
-const collections=['customers','transfers','rates','cash','exchange','wallets'] as const;
+const collections=['customers','transfers','rates','cash','exchange','wallets','inventory','inventoryCustomers','inventorySales'] as const;
 let writePermission:()=>boolean|string=()=>false;
 export function setLocalWritePermission(check:()=>boolean|string){writePermission=check;}
 let tenant='';let failure='';let writable=false;let releaseLock:(()=>void)|undefined;let generation=0;

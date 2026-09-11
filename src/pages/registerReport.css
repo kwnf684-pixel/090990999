@@ -73,3 +73,5 @@
     font-size: 10px;
   }
 }
+
+.report-money-list{display:flex;flex-direction:column;gap:6px;min-width:0;white-space:normal}.report-money-row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;direction:rtl;break-inside:avoid}.report-money-row>bdi{direction:ltr;unicode-bidi:isolate;white-space:nowrap}.register-print .report-money-row{color:#111}@media print{.report-money-list{display:flex!important}.report-money-row{display:flex!important}}

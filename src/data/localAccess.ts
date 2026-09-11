@@ -10,13 +10,14 @@ let failure='';
 // Only retain the current credential in page memory, never browser storage or cloud responses.
 let rememberedPassword:{token:string;value:string}|null=null;
 export function currentSessionPassword(){return session&&rememberedPassword?.token===session.token?rememberedPassword.value:'';}
-try{const raw=localStorage.getItem(key);if(raw){const s=JSON.parse(raw);if(typeof s.token==='string'&&s.role===role&&Number.isFinite(s.offlineUntil)&&Number.isFinite(s.sessionExpiresAt))session=s;}}catch{failure='تعذر قراءة جلسة الدخول المحفوظة.';}
+// Authentication lasts only for this open page. Existing business data is untouched.
+try{localStorage.removeItem(key);}catch{/* No persistent session is read. */}
 let version=0;export const accessVersion=()=>version;const emit=()=>{version++;listeners.forEach(fn=>fn());};
 export function getSession(){return session;}
 export function accessError(){return failure;}
 export function subscribeAccess(fn:()=>void){listeners.add(fn);return()=>{listeners.delete(fn);};}
 export function isUnlocked(){return !!session&&(checked||role==='merchant')&&Date.now()<session.sessionExpiresAt;}
-function persist(next:CloudSession|null){if(!next||rememberedPassword?.token!==next.token)rememberedPassword=null;if(next)localStorage.setItem(key,JSON.stringify(next));else localStorage.removeItem(key);session=next;activateTenant(next?.merchantId||null);emit();}
+function persist(next:CloudSession|null){if(!next||rememberedPassword?.token!==next.token)rememberedPassword=null;try{localStorage.removeItem(key);}catch{/* Memory session only. */}session=next;activateTenant(next?.merchantId||null);emit();}
 export async function loginLocal(phone:string,password:string){if(!client)throw Error('لم يتم ضبط اتصال الخادم.');const result=await client.action(ref<'action'>('auth:login'),{role,phone,password}) as Omit<CloudSession,'offlineUntil'>;checked=true;failure='';persist({...result,offlineUntil:Math.min(Date.now()+86400000,result.sessionExpiresAt,result.sessionExpiresAt)});rememberedPassword={token:result.token,value:password};emit();watchSession();return true;}
 let unwatch:(()=>void)|undefined;
 function stopWatching(){const stop=unwatch;unwatch=undefined;stop?.();}
@@ -26,9 +27,9 @@ export async function revokeSession(){persist(null);checked=false;stopWatching()
 export async function changeLocalPassword(current:string,next:string){if(!client||!session)throw Error('سجّل الدخول أولًا.');const token=session.token;await client.action(ref<'action'>('auth:changePassword'),{token,current,password:next});if(session?.token===token){rememberedPassword={token,value:next};emit();}return true;}
 export function subscriptionEnd(){return session?new Date(session.expiresAt).toISOString():'';}
 export function subscriptionRemaining(){return session?Math.max(0,Math.ceil((session.expiresAt-Date.now())/86400000)):null;}
-activateTenant(session?.merchantId||null);
+activateTenant(null);
 watchSession();
-window.addEventListener('storage',e=>{if(e.key===key){try{const next=e.newValue?JSON.parse(e.newValue):null;if(next?.token===session?.token){session=next;emit();return;}session=next;rememberedPassword=null;checked=false;activateTenant(session?.merchantId||null);watchSession();emit();}catch{session=null;emit();}}});
+window.addEventListener('pagehide',()=>{void revokeSession();});
 window.addEventListener('online',()=>{watchSession();emit();});
 window.addEventListener('offline',emit);
 setInterval(emit,30000);

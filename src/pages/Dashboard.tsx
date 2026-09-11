@@ -1,3 +1,4 @@
+import {useHiddenMenus} from '../data/menuVisibility';
 import {useLocalData,updateLocal} from '../data/localStore';
 import { useState } from 'react';
 import { useCashLedger } from '../data/cashLedger';
@@ -17,7 +18,7 @@ const actions = [
   { title: 'سعر شراء', path: '/exchange/buy', icon: 'exchange' },
   { title: 'سعر بيع', path: '/exchange/sell', icon: 'exchange' },
 ];
-export default function Dashboard() {
+export default function Dashboard() {const hidden=useHiddenMenus();
   const { cashboxBalances,cashboxMovements } = useCashLedger();
   const operations=cashboxMovements.slice().reverse().slice(0,20).map(m=>({id:m.id,type:m.type,customer:m.party,amount:m.amount.toLocaleString('en-US'),currency:m.currency,status:'مكتملة',time:m.date.replace('T',' ')}));
   const wallets=useLocalData().wallets||[];
@@ -47,7 +48,7 @@ export default function Dashboard() {
     </section>
     <section className="quick-section">
       <div className="section-heading"><h2>إجراءات سريعة</h2></div>
-      <div className="quick-grid">{actions.map(a => <QuickActionCard key={a.title} {...a} />)}</div>
+      <div className="quick-grid">{actions.filter(a=>!hidden.includes(a.path.startsWith('/cashbox')?'الصندوق':a.path.startsWith('/customers')?'العملاء':'الصيرفة')).map(a => <QuickActionCard key={a.title} {...a} />)}</div>
     </section>
     <section className="panel dashboard-wallets">
       <div className="panel-heading"><div><h2>المحافظ الإلكترونية</h2><p>أرصدة بالدينار العراقي · محفوظة على هذا المتصفح</p></div><PremiumButton variant="primary" onClick={() => edit()}>+ إضافة محفظة</PremiumButton></div>

@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {useCurrencies} from '../data/currencyStore';
 import {useState} from 'react';
 import {PageHeader} from '../components/ui';
@@ -16,8 +17,8 @@ export default function PeriodReport({mode}:{mode:'daily'|'monthly'|'yearly'}){
  const year=Number(f.year),month=Number(f.month);
  const start=daily?f.date:`${year}-${String(yearly?1:month).padStart(2,'0')}-01`,end=daily?f.date:`${year}-${String(yearly?12:month).padStart(2,'0')}-${new Date(year,yearly?12:month,0).getDate()}`;
  const rows=periodData(local,start,end,f.currency?[f.currency]:periodCurrencies);const activities=reportActivities(local).filter(r=>r.date.slice(0,10)>=start&&r.date.slice(0,10)<=end&&(!f.currency||r.currency===f.currency));
- const money=(data:PeriodRow[],key:Numeric)=> (f.currency?[f.currency]:periodCurrencies).map(c=>`${fmt(sum(data.filter(r=>r.currency===c),key))} ${c}`).join(' / ');
- const stats:[string,string][]=[ [daily?'عدد الحوالات الصادرة':yearly?'إجمالي العمليات السنوية':'إجمالي عدد العمليات',fmt(sum(rows,daily?'outgoing':'operations'))],...(daily?[['عدد الحوالات الواردة',fmt(sum(rows,'incoming'))] as [string,string]]:[]),['إجمالي الحوالات',money(rows,'transfers')],['إجمالي العمولات',money(rows,'commission')],['إجمالي القبض',money(rows,'receipt')],['إجمالي الصرف',money(rows,'payment')],['إجمالي شراء العملة',money(rows,'buy')],['إجمالي بيع العملة',money(rows,'sell')],[daily?'صافي حركة اليوم':yearly?'صافي الحركة السنوية':'صافي الحركة الشهرية',money(rows,'net')]];
+ const money=(data:PeriodRow[],key:Numeric)=> <span className="report-money-list">{(f.currency?[f.currency]:periodCurrencies).map(c=><span className="report-money-row" key={c}><span>{currencies.find(x=>x.code===c)?.label||c}</span><bdi dir="ltr">{fmt(sum(data.filter(r=>r.currency===c),key))} {c}</bdi></span>)}</span>;
+ const stats:[string,ReactNode][]=[ [daily?'عدد الحوالات الصادرة':yearly?'إجمالي العمليات السنوية':'إجمالي عدد العمليات',fmt(sum(rows,daily?'outgoing':'operations'))],...(daily?[['عدد الحوالات الواردة',fmt(sum(rows,'incoming'))] as [string,string]]:[]),['إجمالي الحوالات',money(rows,'transfers')],['إجمالي العمولات',money(rows,'commission')],['إجمالي القبض',money(rows,'receipt')],['إجمالي الصرف',money(rows,'payment')],['إجمالي شراء العملة',money(rows,'buy')],['إجمالي بيع العملة',money(rows,'sell')],[daily?'صافي حركة اليوم':yearly?'صافي الحركة السنوية':'صافي الحركة الشهرية',money(rows,'net')]];
  const keys=['transfers','commission','receipt','payment','buy','sell','net'] as const;
  const groups=Array.from({length:yearly?12:new Date(year,month,0).getDate()},(_,i)=>{const key=String(i+1).padStart(2,'0');return {id:key,data:rows.filter(r=>r.date.slice(yearly?5:8,yearly?7:10)===key)};});
  const headers=[yearly?'الشهر':'اليوم',yearly?'عدد العمليات':'عدد الحوالات','إجمالي المبالغ','العمولات','القبض','الصرف','شراء العملة','بيع العملة','صافي الحركة'];

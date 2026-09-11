@@ -1,4 +1,6 @@
 export const groups = [
+ {label:"المبيعات",icon:"chart",items:[["المبيعات والإيصالات","/sales"]]},
+  {label:"المخزون",icon:"layers",items:[["المواد", "/inventory"],["الزبائن", "/inventory/customers"]]},
   {
     label: "الحوالات",
     icon: "transfer",

@@ -1,3 +1,4 @@
+import ContactAdmin from './ContactAdmin';
 import {useSyncExternalStore} from 'react';
 import {getSession,subscribeAccess,accessVersion} from '../data/localAccess';
 import {PremiumButton,AnimatedInput} from './premium/MotionUI';
@@ -60,7 +61,7 @@ export default function TopBar({
         >
           <Icon name={theme === "dark" ? "sun" : "moon"} />
         </PremiumButton>
-        <div className="user-info">
+        <ContactAdmin/><div className="user-info">
           <span className="avatar"><img src={`${import.meta.env.BASE_URL}icon-192.png`} alt="شعار أعمال المستقبل" style={{width:'100%',height:'100%',objectFit:'contain',borderRadius:'inherit'}} /></span>
           <div>
             <b>{merchant?.name||'التاجر'}</b>
