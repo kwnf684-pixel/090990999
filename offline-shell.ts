@@ -13,7 +13,7 @@ self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c
 self.addEventListener('activate',event=>event.waitUntil((async()=>{const names=await caches.keys();await Promise.all(names.filter(n=>n.startsWith(PREFIX)&&n!==CACHE).map(n=>caches.delete(n)));await self.clients.claim();})()));
 self.addEventListener('message',event=>{if(event.data==='ACTIVATE_UPDATE')self.skipWaiting();});
 self.addEventListener('fetch',event=>{const request=event.request,url=new URL(request.url);if(request.method!=='GET'||url.origin!==self.location.origin||!url.href.startsWith(BASE))return;
-if(request.mode==='navigate'){event.respondWith(caches.open(CACHE).then(async cache=>(await cache.match(new URL('index.html',BASE).href))||fetch(request)));return;}
+if(request.mode==='navigate'){event.respondWith((async()=>{const cache=await caches.open(CACHE);try{const response=await fetch(new URL('index.html',BASE).href,{cache:'no-store'});if(!response.ok)throw new Error('Navigation unavailable');return response;}catch(error){const stored=await cache.match(new URL('index.html',BASE).href);if(stored)return stored;throw error;}})());return;}
 if(FILES.includes(url.href)){event.respondWith(caches.open(CACHE).then(async cache=>(await cache.match(url.href,{ignoreVary:true}))||fetch(request)));}
 });`);
  }};
