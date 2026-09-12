@@ -61,7 +61,7 @@ export default function TopBar({
         >
           <Icon name={theme === "dark" ? "sun" : "moon"} />
         </PremiumButton>
-        <ContactAdmin/><div className="user-info">
+        <PremiumButton className="icon-button" aria-label="تحديث الصفحة" title="تحديث الصفحة" onClick={()=>{if(window.confirm("سيتم تحديث الصفحة مع إبقاء العمليات المحفوظة. احفظ أي نموذج مفتوح أولًا؛ المدخلات غير المحفوظة ستفقد. هل تريد المتابعة؟"))window.location.reload();}}>↻</PremiumButton><ContactAdmin/><div className="user-info">
           <span className="avatar"><img src={`${import.meta.env.BASE_URL}icon-192.png`} alt="شعار أعمال المستقبل" style={{width:'100%',height:'100%',objectFit:'contain',borderRadius:'inherit'}} /></span>
           <div>
             <b>{merchant?.name||'التاجر'}</b>
