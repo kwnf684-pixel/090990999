@@ -1,3 +1,4 @@
+import {recordNumber} from '../data/displayNumbers';
 import {registers,boxName} from '../data/localRegisters';
 import {useCashLedger} from '../data/cashLedger';
 import {useCurrencies} from '../data/currencyStore';
@@ -65,7 +66,7 @@ export default function CashRegisterReport({
         (!filters.to || m.date.slice(0, 10) <= filters.to) &&
         matches(m.reference, filters.reference) &&
         matches(
-          `${m.id} ${m.party} ${m.description} ${boxName(m.box)}`,
+          `${recordNumber(m.id)} ${m.party} ${m.description} ${boxName(m.box)}`,
           filters.query,
         ),
     )
@@ -142,7 +143,7 @@ export default function CashRegisterReport({
     ? ledger.map((m) => ({
         id: m.id,
         cells: [
-          m.id,
+          recordNumber(m.id),
           m.date.replace("T", " · "),
           boxName(m.box),
           m.type,
@@ -434,7 +435,7 @@ export default function CashRegisterReport({
           {movements && movement ? (
             <FinanceDetails
               items={[
-                ["رقم الحركة", movement.id],
+                ["رقم الحركة", recordNumber(movement.id)],
                 ["التاريخ", movement.date],
                 ["الصندوق", boxName(movement.box)],
                 ["نوع الحركة", movement.type],
@@ -481,7 +482,7 @@ export default function CashRegisterReport({
                     .map((m) => (
                       <article className="tl-mobile-card" key={m.id}>
                         <b>
-                          {m.type} · {m.id}
+                          {m.type} · {recordNumber(m.id)}
                         </b>
                         <FinanceDetails
                           items={[

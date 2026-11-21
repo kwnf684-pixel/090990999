@@ -1,10 +1,11 @@
+import {recordNumber} from '../data/displayNumbers';
 import {useCurrencies} from '../data/currencyStore';
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
 import { PageHeader, StatusBadge } from "../components/ui";
-import {saveTransfer} from '../data/transferRecords';
+import {useTransferRecords,saveTransfer} from '../data/transferRecords';
 import {localDate} from '../data/localStore';
 import {useSearchParams} from 'react-router-dom';
 import "./newTransfer.css";
@@ -64,6 +65,8 @@ export default function NewTransfer() {
     if (preview) dialog.current?.showModal();
     else dialog.current?.close();
   }, [preview]);
+  const records=useTransferRecords();
+  const transferNumber=records.some(row=>row.id===transferId)?recordNumber(transferId):'يتولد تلقائيًا عند الحفظ';
   const amount = Number.isFinite(Number(values.amount))
     ? Math.min(1e12, Math.max(0, Number(values.amount)))
     : 0;
@@ -199,7 +202,7 @@ export default function NewTransfer() {
       <div className="transfer-meta panel">
         <div>
           <small>رقم الحوالة المحلي</small>
-          <b dir="ltr">{transferId}</b>
+          <b dir="ltr">{transferNumber}</b>
         </div>
         <div>
           <small>التاريخ والوقت</small>
@@ -344,7 +347,7 @@ export default function NewTransfer() {
         </div>
         <dl>
           {[
-            ["رقم الحوالة", transferId],
+            ["رقم الحوالة", transferNumber],
             ["التاريخ والوقت", dateLabel],
             ["المرسل", values.sender],
             ["هاتف المرسل", values.senderPhone],

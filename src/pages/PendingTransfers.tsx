@@ -1,3 +1,4 @@
+import {recordNumber} from '../data/displayNumbers';
 import {useCurrencies} from '../data/currencyStore';
 import {AnimatePresence,motion,useReducedMotion} from 'motion/react';
 import { useState } from "react";
@@ -260,7 +261,7 @@ export default function PendingTransfers() {
                 <tbody>
                   {visible.map((r) => (
                     <tr key={r.id}>
-                      <td dir="ltr">{r.id}</td>
+                      <td dir="ltr">{recordNumber(r.id)}</td>
                       <td>{r.direction === "incoming" ? "واردة" : "صادرة"}</td>
                       <td dir="ltr">{r.date.replace("T", " · ")}</td>
                       <td>{r.sender}</td>
@@ -282,7 +283,7 @@ export default function PendingTransfers() {
               {visible.map((r) => (
                 <article className="tl-mobile-card" key={r.id}>
                   <header>
-                    <b dir="ltr">{r.id}</b>
+                    <b dir="ltr">{recordNumber(r.id)}</b>
                     <span className="tl-badge pending">{r.status}</span>
                   </header>
                   <small>

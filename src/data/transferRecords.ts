@@ -1,6 +1,8 @@
 import {useLocalData,updateLocal,localDate} from './localStore';
 export type TransferRecord = {
   id: string;
+  code?: string;
+  sequence?: number;
   direction: "outgoing" | "incoming";
   date: string;
   sender: string;

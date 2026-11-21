@@ -2,7 +2,7 @@ import inventoryCloud from '../../inventory-cloud.json';
 import {useEffect,useState,useSyncExternalStore} from 'react';
 import {client,ref} from './client';
 import {getSession,subscribeAccess} from '../data/localAccess';
-import {acknowledgeOperation,canWriteLocal,getSyncState,localError,receiveRemote,recordConflict,resolveConflict,subscribeLocal} from '../data/localStore';
+import {migrateReferenceNumbers,acknowledgeOperation,canWriteLocal,getSyncState,localError,receiveRemote,recordConflict,resolveConflict,subscribeLocal} from '../data/localStore';
 import type {SyncChange} from '../data/localStore';
 import {FinanceModal} from '../components/FinanceViews';
 import './sync.css';
@@ -20,7 +20,7 @@ export default function CloudSync({visible=true}:{visible?:boolean}){
    if(stopped||busy)return;if(document.visibilityState==='hidden'){schedule(60000);return;}const session=getSession();if(!session||session.merchantId!==identity)return;
    if(!canWriteLocal()){setStatus(localError()||'قراءة فقط: البيانات مفتوحة في تبويبة أخرى');schedule(2000);return;}
    if(!client){setStatus('الاتصال السحابي غير مهيأ');return;}
-   if(!connected){setStatus('الاتصال بالسحابة غير متاح · العمليات محفوظة على الجهاز بانتظار الاتصال');schedule(30000);return;}
+   if(!connected){for(let batch=0;batch<20&&migrateReferenceNumbers();batch++){/* Continue bounded offline migration batches. */}setStatus('الاتصال بالسحابة غير متاح · العمليات محفوظة على الجهاز بانتظار الاتصال');schedule(30000);return;}
    if(getSyncState().conflict.length){setStatus('توجد تعديلات متعارضة تحتاج مراجعتك');return;}
    busy=true;setStatus('جارٍ مزامنة البيانات');
    slowTimer=setTimeout(()=>{if(!stopped&&busy)setStatus(connected?'استجابة السحابة بطيئة · العمليات محفوظة، ننتظر التأكيد':'الاتصال بالسحابة غير متاح · العمليات محفوظة على الجهاز بانتظار الاتصال');},15000);
@@ -31,11 +31,13 @@ export default function CloudSync({visible=true}:{visible?:boolean}){
      receiveRemote(identity,pull.cursor,pull.changes);if(!pull.hasMore)break;
     }
     if(session.expiresAt<=Date.now()){setStatus('الاشتراك منتهٍ · عرض البيانات متاح والعمليات المعلقة محفوظة');return;}
+    for(let batch=0;batch<20&&migrateReferenceNumbers();batch++){/* Prepare bounded batches before pushing them. */}
     let count=0;
     while(!stopped&&connected&&getSyncState().tenantId===identity&&getSyncState().outbox.length&&count++<20){
      const operation=getSyncState().outbox[0];if(!inventoryCloud.enabled&&operation.changes.some(c=>c.collection.startsWith('inventory'))){setStatus('المخزون محفوظ محليًا · بانتظار تفعيل المزامنة بعد إكمال الربط');return;}const result=await client.mutation(ref<'mutation'>('sync:push'),{...sessionArgs,...operation}) as Push;
      if(!result.ok){recordConflict(identity,result.conflicts);setStatus('توجد تعديلات متعارضة تحتاج مراجعتك');return;}
      acknowledgeOperation(identity,operation.operationId,result.cursor);
+     if(!getSyncState().outbox.length)migrateReferenceNumbers();
     }
     retry=0;if(!connected){setStatus('الاتصال بالسحابة غير متاح · العمليات محفوظة على الجهاز بانتظار الاتصال');return;}setStatus(getSyncState().outbox.length?'تستمر مزامنة العمليات المحفوظة':'تمت المزامنة · البيانات محفوظة محليًا وسحابيًا');
    }catch(error){

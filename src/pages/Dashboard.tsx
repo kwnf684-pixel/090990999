@@ -1,5 +1,6 @@
+import {recordNumber} from '../data/displayNumbers';
 import {useHiddenMenus} from '../data/menuVisibility';
-import {useLocalData,updateLocal} from '../data/localStore';
+import {localDate,useLocalData,updateLocal} from '../data/localStore';
 import { useState } from 'react';
 import { useCashLedger } from '../data/cashLedger';
 import { motion, useReducedMotion } from 'motion/react';
@@ -20,7 +21,8 @@ const actions = [
 ];
 export default function Dashboard() {const hidden=useHiddenMenus();
   const { cashboxBalances,cashboxMovements } = useCashLedger();
-  const operations=cashboxMovements.slice().reverse().slice(0,20).map(m=>({id:m.id,type:m.type,customer:m.party,amount:m.amount.toLocaleString('en-US'),currency:m.currency,status:'مكتملة',time:m.date.replace('T',' ')}));
+  const [operationsDate,setOperationsDate]=useState(()=>localDate().slice(0,10));
+  const operations=cashboxMovements.filter(m=>m.date.slice(0,10)===operationsDate).slice().reverse().map(m=>({id:m.id,type:m.type,customer:m.party,amount:m.amount.toLocaleString('en-US'),currency:m.currency,status:'مكتملة',time:m.date.replace('T',' ')}));
   const wallets=useLocalData().wallets||[];
   const [editor, setEditor] = useState<Wallet | null>(null);
   const [deleting, setDeleting] = useState<Wallet | null>(null);
@@ -37,7 +39,7 @@ export default function Dashboard() {const hidden=useHiddenMenus();
   }
   return <div className="dashboard-simple">
     <PageHeader title="أرصدتك، بنظرة واحدة" description="مساحة مختصرة لإدارة يومك.">
-      <PremiumButton onClick={() => setShowOperations(true)} aria-haspopup="dialog" aria-expanded={showOperations} aria-label={`آخر العمليات، ${operations.length} عمليات أخيرة`}>
+      <PremiumButton onClick={() => {setOperationsDate(localDate().slice(0,10));setShowOperations(true);}} aria-haspopup="dialog" aria-expanded={showOperations} aria-label={`آخر العمليات، ${operations.length} عمليات أخيرة`}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
         آخر العمليات <span className="count-badge">{operations.length}</span>
       </PremiumButton>
@@ -80,8 +82,8 @@ export default function Dashboard() {const hidden=useHiddenMenus();
     {deleting && <AnimatedModal title="حذف محفظة" close={() => setDeleting(null)}><p>حذف محفظة «{deleting.name}» ورصيدها التجريبي من هذا المتصفح؟</p><div className="dashboard-wallet-actions"><PremiumButton variant="danger" onClick={() => { if(saveWallets(wallets.filter(w => w.id !== deleting.id)))setDeleting(null); }}>تأكيد الحذف</PremiumButton><PremiumButton onClick={() => setDeleting(null)}>إلغاء</PremiumButton></div></AnimatedModal>}
     {showOperations && <AnimatedModal title="آخر العمليات" close={() => setShowOperations(false)}>
       <motion.div className="dashboard-operation-list" initial={reduced ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .18 }}>
-        <p>آخر {operations.length} عمليات مسجلة</p>
-        {operations.map(op => <article className="dashboard-operation" key={op.id}><div><b>{op.type}</b><StatusBadge status={op.status} /></div><p>{op.customer}</p><div><strong dir="ltr">{op.amount} {op.currency}</strong><time>{op.time}</time></div><small dir="ltr">{op.id}</small></article>)}
+        <label className="tl-field"><span>تاريخ العمليات</span><input type="date" aria-label="تاريخ العمليات" value={operationsDate} max={localDate().slice(0,10)} onChange={e=>setOperationsDate(e.target.value)}/></label><p>{operations.length} عمليات في {operationsDate}</p>{!operations.length&&<p>لا توجد عمليات لهذا اليوم.</p>}
+        {operations.map(op => <article className="dashboard-operation" key={op.id}><div><b>{op.type}</b><StatusBadge status={op.status} /></div><p>{op.customer}</p><div><strong dir="ltr">{op.amount} {op.currency}</strong><time>{op.time}</time></div><small dir="ltr">{recordNumber(op.id)}</small></article>)}
       </motion.div>
     </AnimatedModal>}
   </div>;

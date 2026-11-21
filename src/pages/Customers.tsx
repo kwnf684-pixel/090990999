@@ -1,3 +1,5 @@
+import {customerCode,recordNumber} from '../data/displayNumbers';
+import {FinanceModal} from '../components/FinanceViews';
 import {mockMovements, openingBalance} from '../data/customerMovements';
 import {localDate} from '../data/localStore';
 import CustomerForm from '../components/CustomerForm';
@@ -71,7 +73,7 @@ function CustomerModal({
     >
       <div className="tl-modal-heading">
         <div>
-          <span className="eyebrow">{customer?.id || "عميل جديد"}</span>
+          <span className="eyebrow">{customer ? customerCode(customer.id) : "عميل جديد"}</span>
           <h2 id="customer-modal-title">{titles[action]}</h2>
         </div>
         <button className="tl-button" onClick={close}>
@@ -153,7 +155,7 @@ function CustomerModal({
                     ),
                   )}
                 </div>
-                {action === "statement" && <section className="customer-statement-movements"><h3>حركات العميل</h3>{movements.length ? movements.map(m=><article className="tl-mobile-card" key={m.id}><header><b>{m.type}</b><span dir="ltr">{m.id}</span></header><dl><div><dt>التاريخ</dt><dd>{m.date.replace('T',' ')}</dd></div><div><dt>المرجع</dt><dd>{m.reference}</dd></div><div><dt>مدين</dt><dd>{number(m.debit)} {m.currency}</dd></div><div><dt>دائن</dt><dd>{number(m.credit)} {m.currency}</dd></div><div><dt>البيان</dt><dd>{m.description||'—'}</dd></div><div><dt>ملاحظات</dt><dd>{m.notes||'—'}</dd></div></dl></article>):<p className="tl-empty">لم تُسجل حركات لهذا العميل بعد.</p>}</section>}
+                {action === "statement" && <section className="customer-statement-movements"><h3>حركات العميل</h3>{movements.length ? movements.map(m=><article className="tl-mobile-card" key={m.id}><header><b>{m.type}</b><span dir="ltr">{recordNumber(m.id)}</span></header><dl><div><dt>التاريخ</dt><dd>{m.date.replace('T',' ')}</dd></div><div><dt>المرجع</dt><dd>{recordNumber(m.reference)}</dd></div><div><dt>مدين</dt><dd>{number(m.debit)} {m.currency}</dd></div><div><dt>دائن</dt><dd>{number(m.credit)} {m.currency}</dd></div><div><dt>البيان</dt><dd>{m.description||'—'}</dd></div><div><dt>ملاحظات</dt><dd>{m.notes||'—'}</dd></div></dl></article>):<p className="tl-empty">لم تُسجل حركات لهذا العميل بعد.</p>}</section>}
               </>
             )}
           </>
@@ -183,14 +185,15 @@ export default function Customers({
     action: CustomerAction;
   } | null>(null);
   const [page, setPage] = useState(1);
+  const [listOpen,setListOpen]=useState(false);
   const currencies = [
     ...new Set(customers.flatMap((c) => Object.keys(c.balances))),
   ];
   const rows = [...customers].sort((a,b)=>a.name.localeCompare(b.name,"ar")||a.id.localeCompare(b.id)).filter(
     (c) =>
-      (balances ? `${c.name} ${c.phone} ${c.id}`.toLowerCase().includes(filters.name.trim().toLowerCase()) : c.name.includes(filters.name.trim())) &&
+      (balances ? `${c.name} ${c.phone} ${customerCode(c.id)}`.toLowerCase().includes(filters.name.trim().toLowerCase()) : c.name.includes(filters.name.trim())) &&
       c.phone.includes(filters.phone.trim()) &&
-      c.id.toLowerCase().includes(filters.id.trim().toLowerCase()) &&
+      customerCode(c.id).toLowerCase().includes(filters.id.trim().toLowerCase()) &&
       (!filters.status || (filters.status === "active") === c.active) &&
       (!filters.currency || Object.hasOwn(c.balances, filters.currency)) &&
       (!filters.type || balanceType(c, filters.currency) === filters.type) &&
@@ -200,9 +203,9 @@ export default function Customers({
             ? (c.balances[filters.currency] || 0) !== 0
             : Object.values(c.balances).some((v) => v !== 0))),
   );
-  const pages = Math.max(1, Math.ceil(rows.length / 5));
+  const pages = Math.max(1, Math.ceil(rows.length / 15));
   const current = Math.min(page, pages);
-  const visible = rows.slice((current - 1) * 5, current * 5);
+  const visible = rows.slice((current - 1) * 15, current * 15);
   const customer = customers.find((c) => c.id === selected?.id);
   const title = balances ? "أرصدة العملاء" : "العملاء";
   function change(key: keyof typeof filters, value: string) {
@@ -302,6 +305,7 @@ export default function Customers({
         بياناتك محفوظة محليًا. الموجب: دائن (للعميل)،
         السالب: مدين (على العميل). لا نجمع عملات مختلفة في رصيد واحد.
       </p>
+      <button className="tl-button primary" onClick={()=>{setPage(1);setListOpen(true);}}>{balances?"قائمة الأرصدة":"دليل العملاء"}</button>
       <div className="panel tl-filters">
         <div className="tl-filter-grid">
           {(balances
@@ -355,6 +359,8 @@ export default function Customers({
           </button>
         </div>
       </div>
+      {listOpen&&<FinanceModal fullScreen title={balances?"قائمة الأرصدة":"دليل العملاء"} close={()=>setListOpen(false)}>
+      <label className="tl-field"><span>البحث عن عميل</span><input type="search" aria-label="البحث داخل القائمة" value={filters.name} onChange={e=>change("name",e.target.value)}/></label>
       <div className="tl-stats">
         {(balances ? currencies.map(code=>["إجمالي "+code, `${number(rows.reduce((sum,c)=>sum+(c.balances[code]||0),0))} ${code}`])
           : [
@@ -415,8 +421,8 @@ export default function Customers({
                 </thead>
                 <tbody>
                   {visible.map((c,index) => (
-                    <tr key={c.id}>{!balances&&<td>{(current-1)*5+index+1}</td>}
-                      <td dir="ltr">{c.id}</td>
+                    <tr key={c.id}>{!balances&&<td>{(current-1)*15+index+1}</td>}
+                      <td dir="ltr">{customerCode(c.id)}</td>
                       <td>{c.name}</td>
                       {balances ? (<><td dir="ltr">{c.phone||"—"}</td><td>{amount(c, "USD")}</td>
                           <td>{amount(c, "IQD")}</td>
@@ -456,8 +462,8 @@ export default function Customers({
               {visible.map((c,index) => (
                 <article className="tl-mobile-card" key={c.id}>
                   <header>
-                    <b>{!balances&&<span className="count-badge">{(current-1)*5+index+1}</span>} {c.name}</b>
-                    <span dir="ltr">{c.id}</span>
+                    <b>{!balances&&<span className="count-badge">{(current-1)*15+index+1}</span>} {c.name}</b>
+                    <span dir="ltr">{customerCode(c.id)}</span>
                   </header>
                   <dl>{balances&&<div><dt>الهاتف</dt><dd dir="ltr">{c.phone||"—"}</dd></div>}
                     {!balances && (
@@ -530,6 +536,7 @@ export default function Customers({
           </>
         )}
       </section>
+      </FinanceModal>}
       {selected && (
         <CustomerModal
           key={`${selected.id}-${selected.action}`}

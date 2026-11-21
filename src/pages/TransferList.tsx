@@ -1,3 +1,4 @@
+import {recordNumber} from '../data/displayNumbers';
 import {localDate} from '../data/localStore';
 import {useCurrencies} from '../data/currencyStore';
 import {AnimatePresence,motion,useReducedMotion} from 'motion/react';
@@ -48,7 +49,7 @@ function DetailRows({ row }: { row: TransferRecord }) {
   return (
     <dl className="tl-details">
       {[
-        ["رقم الحوالة", row.id],
+        ["رقم الحوالة", recordNumber(row.id)],
         ["النوع", row.direction === "outgoing" ? "صادرة" : "واردة"],
         ["التاريخ", dateText(row.date)],
         ["المرسل", row.sender],
@@ -155,7 +156,7 @@ export function RecordModal({
     >
       <div className="tl-modal-heading">
         <div>
-          <span className="eyebrow">{row.id}</span>
+          <span className="eyebrow">{recordNumber(row.id)}</span>
           <h2 id="tl-modal-title">{titles[action]}</h2>
         </div>
         <button
@@ -322,8 +323,8 @@ export default function TransferList({ mode }: { mode: Mode }) {
     ? []
     : source.filter(
         (r) =>
-          includes(`${r.id} ${r.sender} ${r.recipient} ${r.senderPhone} ${r.recipientPhone}`, filters.quick) &&
-          includes(r.id, filters.id) &&
+          includes(`${recordNumber(r.id)} ${r.sender} ${r.recipient} ${r.senderPhone} ${r.recipientPhone}`, filters.quick) &&
+          includes(recordNumber(r.id), filters.id) &&
           includes(r.sender, filters.sender) &&
           includes(r.recipient, filters.recipient) &&
           includes(`${r.senderPhone} ${r.recipientPhone}`, filters.phone) &&
@@ -489,7 +490,7 @@ export default function TransferList({ mode }: { mode: Mode }) {
         ];
   function cells(r: TransferRecord): ReactNode[] {
     const common = [
-      <b dir="ltr">{r.id}</b>,
+      <b dir="ltr">{recordNumber(r.id)}</b>,
       <span dir="ltr">{dateText(r.date)}</span>,
     ];
     const amount = <b dir="ltr">{format(r.amount)}</b>;
@@ -760,7 +761,7 @@ export default function TransferList({ mode }: { mode: Mode }) {
                 {visible.map((r) => (
                   <article className="tl-mobile-card" key={r.id}>
                     <header>
-                      <b dir="ltr">{r.id}</b>
+                      <b dir="ltr">{recordNumber(r.id)}</b>
                       <TransferStatusSelect row={r} />
                     </header>
                     <small>
@@ -817,7 +818,7 @@ export default function TransferList({ mode }: { mode: Mode }) {
         </p>
         {filtered.map((r) => (
           <article key={r.id}>
-            <h2>{r.id}</h2>
+            <h2>{recordNumber(r.id)}</h2>
             <DetailRows row={r} />
           </article>
         ))}

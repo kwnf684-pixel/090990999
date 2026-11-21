@@ -1,3 +1,4 @@
+import {recordNumber} from '../data/displayNumbers';
 import CashBalanceEditor from '../components/CashBalanceEditor';
 import {useCashLedger} from '../data/cashLedger';
 import { useState } from "react";
@@ -18,6 +19,10 @@ export default function Cashbox() {
   const {cashboxBalances,cashboxMovements}=useCashLedger();
   const d=new Date();const cashboxDay=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const [selected, setSelected] = useState("");
+  const [listOpen,setListOpen]=useState(false);
+  const [page,setPage]=useState(1);
+  const pageCount=Math.max(1,Math.ceil(cashboxMovements.length/20));
+  const currentPage=Math.min(page,pageCount);
   const current = cashboxMovements.find((m) => m.id === selected);
   const today = cashboxMovements.filter((m) => m.date.startsWith(cashboxDay));
   function totals(type: string) {
@@ -92,7 +97,8 @@ export default function Cashbox() {
           ))}
         </div>
       </section>
-      <section className="panel finance-results">
+      <button className="tl-button primary" onClick={()=>{setPage(1);setListOpen(true);}}>آخر حركات الصندوق</button>
+      {listOpen&&<FinanceModal fullScreen title="آخر حركات الصندوق" close={()=>setListOpen(false)}><section className="panel finance-results">
         <div className="panel-heading">
           <h2>آخر حركات الصندوق</h2>
           <span className="eyebrow">
@@ -113,13 +119,13 @@ export default function Cashbox() {
             "المستخدم",
             "عرض",
           ]}
-          rows={[...cashboxMovements].reverse().map((m) => ({
+          rows={[...cashboxMovements].reverse().slice((currentPage-1)*20,currentPage*20).map((m) => ({
             id: m.id,
             cells: [
-              m.id,
+              recordNumber(m.id),
               m.date.replace("T", " · "),
               m.type,
-              m.reference,
+              recordNumber(m.reference),
               m.description,
               fmt(m.amount),
               m.currency,
@@ -134,7 +140,7 @@ export default function Cashbox() {
             ],
           }))}
         />
-      </section>
+      </section><nav className="tl-pagination"><button className="tl-button" disabled={currentPage===1} onClick={()=>setPage(currentPage-1)}>السابق</button><span>صفحة {currentPage} من {pageCount}</span><button className="tl-button" disabled={currentPage===pageCount} onClick={()=>setPage(currentPage+1)}>التالي</button></nav></FinanceModal>}
       {current && (
         <FinanceModal title="تفاصيل حركة الصندوق" close={() => setSelected("")}>
           <p className="tl-disclaimer">
@@ -142,14 +148,14 @@ export default function Cashbox() {
           </p>
           <FinanceDetails
             items={[
-              ["رقم الحركة", current.id],
+              ["رقم الحركة", recordNumber(current.id)],
               ["التاريخ والوقت", current.date.replace("T", " · ")],
               ["نوع الحركة", current.type],
               ["الطرف", current.party],
               ["نوع الطرف", current.partyType],
               ["سبب السند", current.reason||"—"],
               ["الملاحظات", current.notes||"—"],
-              ["المرجع", current.reference],
+              ["المرجع", recordNumber(current.reference)],
               ["البيان", current.description],
               ["المبلغ", `${fmt(current.amount)} ${current.currency}`],
               ["الاتجاه", current.incoming ? "داخل" : "خارج"],

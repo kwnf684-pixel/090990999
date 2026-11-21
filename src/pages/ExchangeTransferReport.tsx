@@ -1,3 +1,4 @@
+import {recordNumber} from '../data/displayNumbers';
 import {useCurrencies} from '../data/currencyStore';
 import {useState} from 'react';
 import {PageHeader} from '../components/ui';
@@ -13,11 +14,11 @@ export default function ExchangeTransferReport({transfers=false}:{transfers?:boo
  const exchangeHistory=useLocalData().exchange;const records=useTransferRecords();const [f,setF]=useState(empty);const [page,setPage]=useState(1);const [selected,setSelected]=useState('');const [notice,setNotice]=useState('');
  const source=transfers?records.map(r=>({...r,type:r.direction==='incoming'?'واردة':'صادرة',party:`${r.sender} ${r.recipient}`,user:'',counter:r.currency})):exchangeHistory.map(r=>({...r,office:'',sender:'',recipient:''}));
  const badDates=!!(f.from&&f.to&&f.from>f.to);const match=(s:string,q:string)=>s.toLowerCase().includes(q.trim().toLowerCase());
- const filtered=source.filter(r=>!badDates&&(!f.type||r.type===f.type)&&(!f.currency||r.currency===f.currency)&&(!f.status||r.status===f.status)&&(!f.user||r.user===f.user)&&(!f.office||r.office===f.office)&&match(r.party,f.party)&&match(`${r.id} ${r.party}`,f.query)&&(!f.from||r.date.slice(0,10)>=f.from)&&(!f.to||r.date.slice(0,10)<=f.to)).sort((a,b)=>b.date.localeCompare(a.date));
+ const filtered=source.filter(r=>!badDates&&(!f.type||r.type===f.type)&&(!f.currency||r.currency===f.currency)&&(!f.status||r.status===f.status)&&(!f.user||r.user===f.user)&&(!f.office||r.office===f.office)&&match(r.party,f.party)&&match(`${recordNumber(r.id)} ${r.party}`,f.query)&&(!f.from||r.date.slice(0,10)>=f.from)&&(!f.to||r.date.slice(0,10)<=f.to)).sort((a,b)=>b.date.localeCompare(a.date));
  const currencyCatalogue=useCurrencies();const currencies=currencyCatalogue.map(c=>c.code);const total=(kind:'amount'|'commission',type?:string)=>[...new Set(filtered.map(r=>kind==='commission'?r.counter:r.currency))].map(c=>`${fmt(filtered.filter(r=>(kind==='commission'?r.counter:r.currency)===c&&(!type||r.type===type)&&(!transfers?r.status==='مكتملة':true)).reduce((s,r)=>s+r[kind],0))} ${c}`).join(' / ')||'0';
  const pages=Math.max(1,Math.ceil(filtered.length/6));const current=Math.min(page,pages);
  const headers=transfers?['رقم الحوالة','النوع','التاريخ','المرسل','المستفيد','المكتب/الشريك','المبلغ','العملة','العمولة','الحالة']:['رقم العملية','التاريخ والوقت','نوع العملية','الطرف','العملة','المبلغ','سعر الصرف','المبلغ المقابل','العمولة','الصندوق','الحالة'];
- const rows=filtered.map(r=>{if(transfers)return {id:r.id,cells:[r.id,r.type,r.date.replace('T',' '),r.sender,r.recipient,r.office,fmt(r.amount),r.currency,fmt(r.commission),r.status]};const m=exchangeHistory.find(x=>x.id===r.id)!;return {id:r.id,cells:[m.id,m.date.replace('T',' '),m.type,m.party,m.currency,fmt(m.amount),fmt(m.rate),`${fmt(m.counterpart)} ${m.counter}`,`${fmt(m.commission)} ${m.counter}`,m.box,m.status]};});
+ const rows=filtered.map(r=>{if(transfers)return {id:r.id,cells:[recordNumber(r.id),r.type,r.date.replace('T',' '),r.sender,r.recipient,r.office,fmt(r.amount),r.currency,fmt(r.commission),r.status]};const m=exchangeHistory.find(x=>x.id===r.id)!;return {id:r.id,cells:[recordNumber(m.id),m.date.replace('T',' '),m.type,m.party,m.currency,fmt(m.amount),fmt(m.rate),`${fmt(m.counterpart)} ${m.counter}`,`${fmt(m.commission)} ${m.counter}`,m.box,m.status]};});
  const title=transfers?'تقرير الحوالات':'سجل عمليات الصرف';
  function change(k:keyof typeof empty,v:string){setF({...f,[k]:v});setPage(1);}
  function input(k:keyof typeof empty,label:string,type='text'){return <label className="tl-field"><span>{label}</span><input aria-label={label} type={type} value={f[k]} onChange={e=>change(k,e.target.value)}/></label>;}

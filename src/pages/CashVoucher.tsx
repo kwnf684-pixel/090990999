@@ -1,3 +1,5 @@
+import {customerCode,recordNumber} from '../data/displayNumbers';
+import {useLocalData} from '../data/localStore';
 import {postCashVoucher} from '../data/cashLedger';
 import {useCurrencies} from '../data/currencyStore';
 import { useState } from "react";
@@ -38,6 +40,9 @@ export default function CashVoucher({
   const currencies=useCurrencies();
   const navigate = useNavigate();
   const customers = useCustomers();
+  const data=useLocalData();
+  const [customerId,setCustomerId]=useState('');
+  const customer=customers.find(c=>c.id===customerId);
   const title = payment ? "سند صرف" : "سند قبض";
   const [id,setId] = useState(
     () =>
@@ -51,12 +56,10 @@ export default function CashVoucher({
   const [preview, setPreview] = useState(false);
   const [message, setMessage] = useState("");
   const currencyValid = currencies.some(c=>c.code===values.currency);
-  const parties =
-    values.partyType === "عميل"
-      ? customers.map((c) => c.name)
-      : values.partyType === "شريك"
-        ? []
-        : [];
+  const matches=customers.filter(c=> (c.name+' '+c.phone+' '+customerCode(c.id)).toLowerCase().includes(values.party.trim().toLowerCase()));
+  const sequence=Math.max(0,...data.cash.filter(p=>p.customerId===customerId&&p.type===(payment?'صرف':'قبض')).map(p=>p.sequence||0))+1;
+  const existing=data.cash.find(row=>row.id===id&&row.customerId===customerId&&row.type===(payment?'صرف':'قبض'));
+  const voucherNumber=existing?.code || (customer?.code ? customer.code+'-'+(payment?String(sequence).padStart(2,'0'):sequence) : 'اختر العميل لتوليد رقم السند');
   function change(key: keyof Values, value: string) {
     setValues((v) => ({
       ...v,
@@ -73,7 +76,7 @@ export default function CashVoucher({
   }
   function validate() {
     const next: Partial<Record<keyof Values, string>> = {};
-    if (!values.party.trim()) next.party = "الطرف مطلوب.";
+    if (!customer) next.party = 'اختر عميلًا محفوظًا من نتائج البحث.';
     if (!currencyValid) next.currency = "اختر العملة.";
     if (
       !values.amount ||
@@ -159,7 +162,7 @@ export default function CashVoucher({
       <div className="panel voucher-meta">
         <div>
           <small>رقم السند المحلي</small>
-          <b dir="ltr">{id}</b>
+          <b dir="ltr">{voucherNumber}</b>
         </div>
         <span className={`tl-badge ${saved ? "done" : "review"}`}>
           {saved ? "محفوظ محليًا" : "مسودة"}
@@ -170,39 +173,25 @@ export default function CashVoucher({
           <h2>بيانات {title}</h2>
           <div className="voucher-grid">
             {field("date", "التاريخ والوقت", "datetime-local", true)}
-            <label className="tl-field">
-              <span>نوع الطرف</span>
-              <select
-                aria-label="نوع الطرف"
-                value={values.partyType}
-                onChange={(e) => change("partyType", e.target.value)}
-              >
-                {["عميل", "شريك", "أخرى"].map((type) => (
-                  <option key={type}>{type}</option>
-                ))}
-              </select>
-            </label>
+            <p>نوع الطرف. عميل محفوظ</p>
             <label className="tl-field" htmlFor="voucher-party">
               <span>الطرف *</span>
               <input
                 id="voucher-party"
                 aria-label="الطرف"
-                list="voucher-parties"
+                type="search"
                 value={values.party}
-                onChange={(e) => change("party", e.target.value)}
+                onChange={(e) => {setCustomerId('');change("party", e.target.value);}}
                 required
                 maxLength={160}
-                placeholder="اسم الطرف أو اختيار اسم محلي"
+                placeholder="ابحث باسم العميل أو الهاتف أو الكود"
                 aria-invalid={!!errors.party}
                 aria-describedby={
                   errors.party ? "voucher-party-error" : undefined
                 }
               />
-              <datalist id="voucher-parties">
-                {parties.map((p) => (
-                  <option value={p} key={p} />
-                ))}
-              </datalist>
+              {!customer&&<div className="voucher-customer-results" role="group" aria-label="نتائج بحث العملاء">{matches.map(c=><button type="button" className="tl-button" key={c.id} onClick={()=>{setCustomerId(c.id);change('party',c.name);}}>{c.name} · {customerCode(c.id)} · {c.phone}</button>)}{!matches.length&&<small>لا يوجد عميل مطابق. أضف العميل في قسم العملاء أولًا.</small>}</div>}
+              {customer&&<small>العميل المختار. {customer.name} · {customerCode(customer.id)}</small>}
               {errors.party && (
                 <small className="tl-error" id="voucher-party-error">
                   {errors.party}
@@ -265,7 +254,7 @@ export default function CashVoucher({
             className="tl-button"
             onClick={() => {
               setId(`${payment ? "PAY" : "REC"}-${crypto.randomUUID().toUpperCase()}`);
-              setValues(empty());
+              setCustomerId('');setValues(empty());
               setErrors({});
               setSaved(null);
               setMessage("تم بدء سند جديد؛ السندات المحفوظة تبقى في سجل الصندوق.");
@@ -295,7 +284,7 @@ export default function CashVoucher({
             </p>
             <FinanceDetails
               items={[
-                ["رقم السند", saved.id],
+                ["رقم السند", recordNumber(saved.id)],
                 ["التاريخ والوقت", saved.date.replace("T", " · ")],
                 ["الطرف", saved.party],
                 ["نوع الطرف", saved.partyType],

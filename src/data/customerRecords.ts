@@ -3,6 +3,8 @@ import {useLocalData,updateLocal,localDate} from './localStore';
 import type {LocalData} from './localStore';
 export type Customer = {
   id: string;
+  code?: string;
+  sequence?: number;
   name: string;
   phone: string;
   address: string;

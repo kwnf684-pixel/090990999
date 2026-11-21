@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {useLocalData,updateLocal} from './localStore';
 import type {LocalData} from './localStore';
 export type CashPosting = {
-  id:string; customerId?:string; date:string; party:string; partyType:string; currency:string;
+  id:string; code?:string; sequence?:number; customerId?:string; date:string; party:string; partyType:string; currency:string;
   amount:number; type:'قبض'|'صرف'; reason:string; reference:string; description:string; notes:string;
 };
 
@@ -17,7 +17,19 @@ export function buildCashLedger(data:LocalData){
  return {cashboxBalances:balances,cashboxMovements,registerMovements,registerBalanceRows};
 }
 export function useCashLedger(){const data=useLocalData();return useMemo(()=>buildCashLedger(data),[data]);}
-export function postCashVoucher(posting:CashPosting){
- if(!posting.id||!posting.party.trim()||!posting.currency||!Number.isFinite(posting.amount)||posting.amount<=0||posting.amount>1e12||!Number.isFinite(Date.parse(posting.date)))throw Error('بيانات السند غير صالحة للحفظ.');
- if(!updateLocal(data=>({...data,cash:data.cash.some(p=>p.id===posting.id)?data.cash.map(p=>p.id===posting.id?{...posting,date:p.date}:p):[...data.cash,posting]})))throw Error('لم يتم حفظ السند. تحقق من مساحة التخزين المحلية.');
+export function postCashVoucher(posting:CashPosting) {
+ if (!posting.id || !posting.party.trim() || !posting.currency || !Number.isFinite(posting.amount)
+   || posting.amount <= 0 || posting.amount > 1e12 || !Number.isFinite(Date.parse(posting.date))) {
+   throw Error('بيانات السند غير صالحة للحفظ.');
+ }
+ const saved = updateLocal(data => {
+   const customer = data.customers.find(row => row.id === posting.customerId);
+   if (!customer || posting.partyType !== 'عميل') throw Error('اختر عميلًا محفوظًا.');
+   const next = {...posting,party:customer.name};
+   const cash = data.cash.some(row => row.id === posting.id)
+     ? data.cash.map(row => row.id === posting.id ? {...next,date:row.date} : row)
+     : [...data.cash,next];
+   return {...data,cash};
+ });
+ if (!saved) throw Error('لم يتم حفظ السند. راجع التنبيه وأعد المحاولة.');
 }

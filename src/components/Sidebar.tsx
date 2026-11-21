@@ -1,7 +1,7 @@
 import {useHiddenMenus} from '../data/menuVisibility';
-import {currentVersion} from '../updates/versionService';
+import {getSession,subscribeAccess,accessVersion} from '../data/localAccess';
 import {motion,useReducedMotion} from 'motion/react';
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { groups } from "../data/navigation";
 import Icon from "./Icon";
@@ -18,7 +18,10 @@ export default function Sidebar({
 }) {
   const reduced=useReducedMotion();const hidden=useHiddenMenus();
   const { pathname } = useLocation();
-  const [open, setOpen] = useState<string[]>(["الحوالات"]);
+  useSyncExternalStore(subscribeAccess,accessVersion);
+  const merchant=getSession();
+  const [opened, setOpen] = useState({pathname,label:groups.find(g=>g.items.some(([,path])=>path===pathname))?.label||''});
+  const open=opened.pathname===pathname?opened.label:groups.find(g=>g.items.some(([,path])=>path===pathname))?.label||'';
   return (
     <aside
       id="main-sidebar"
@@ -67,7 +70,7 @@ export default function Sidebar({
         </NavLink>
         {groups.filter(g=>!hidden.includes(g.label)).map((g) => {
           const active = g.items.some(([, p]) => p === pathname);
-          const expanded = open.includes(g.label) || active;
+          const expanded = open === g.label;
           return (
             <div className="nav-group" key={g.label}>
               <button
@@ -76,11 +79,7 @@ export default function Sidebar({
                 aria-expanded={!collapsed && expanded}
                 onClick={() => {
                   if (collapsed) onExpand();
-                  setOpen((v) =>
-                    v.includes(g.label)
-                      ? v.filter((x) => x !== g.label)
-                      : [...v, g.label],
-                  );
+                  setOpen({pathname,label:open===g.label?'':g.label});
                 }}
               >
                 <Icon name={g.icon} />
@@ -105,10 +104,10 @@ export default function Sidebar({
       <div className="sidebar-footer">
         <Icon name="shield" />
         <div>
-          <b>مساحة التاجر</b>
-          <small>حفظ محلي ومزامنة سحابية</small>
+          <b>{merchant?.name || "التاجر"} <span className="merchant-verified" aria-label="موثوق" title="موثوق">✓</span></b>
+          <small>حساب تاجر موثوق</small>
         </div>
-        <span title={`الإصدار ${currentVersion}`}>v{currentVersion}</span>
+        <span title="الإصدار v0.1">v0.1</span>
       </div>
     </aside>
   );

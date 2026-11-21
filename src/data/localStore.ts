@@ -1,3 +1,4 @@
+import {numberChangedRecords,referenceMigration,needsReferenceNumbers} from './referenceNumbers';
 import {validInventoryTransactions} from './inventoryLedger';
 import type {InventoryTransaction} from './inventoryLedger';
 import {useSyncExternalStore} from 'react';
@@ -5,9 +6,9 @@ import type {Customer} from './customerRecords';
 import type {TransferRecord} from './transferRecords';
 import type {LocalRate} from './currencyStore';
 import type {CashPosting} from './cashLedger';
-export type ExchangeEntry={id:string;date:string;type:string;party:string;currency:string;amount:number;rate:number;counter:string;counterpart:number;commission:number;box:string;user:string;status:string;description:string;notes:string};
+export type ExchangeEntry={id:string;code?:string;sequence?:number;date:string;type:string;party:string;currency:string;amount:number;rate:number;counter:string;counterpart:number;commission:number;box:string;user:string;status:string;description:string;notes:string};
 export type InventoryCustomer={id:string;name:string;phone:string;details:string;transactions?:InventoryTransaction[]};
-export type InventorySale={id:string;customerId:string;customerName:string;date:string;currency:string;total:number;lines:{itemId:string;name:string;quantity:number;purchasePrice:number;salePrice:number}[]};
+export type InventorySale={id:string;code?:string;sequence?:number;customerId:string;customerName:string;date:string;currency:string;total:number;lines:{itemId:string;name:string;quantity:number;purchasePrice:number;salePrice:number}[]};
 export type InventoryItem={id:string;name:string;quantity:number;purchasePrice:number;salePrice:number};
 export type LocalData={schema:1;inventory?:InventoryItem[];inventorySales?:InventorySale[];inventoryCustomers?:InventoryCustomer[];wallets?:{id:string;name:string;balance:number}[];customers:Customer[];transfers:TransferRecord[];rates:LocalRate[];rateLog?:LocalRate[];cash:CashPosting[];exchange:ExchangeEntry[]};
 const empty=():LocalData=>({schema:1,customers:[],transfers:[],rates:[],cash:[],exchange:[]});
@@ -66,7 +67,7 @@ function records(data:LocalData){const result=new Map<string,{collection:string;
 export function updateLocal(update:(current:LocalData)=>LocalData){
  const permission=writePermission();if(permission!==true){window.alert(typeof permission==='string'?permission:'أنت غير مشترك. الحفظ متوقف ويمكنك عرض البيانات.');return false;}
  if(!canWriteLocal()){window.alert(failure||'الحفظ متاح في تبويبة واحدة لحماية البيانات. أغلق تبويبة التاجر الأخرى ثم أعد المحاولة.');return false;}
- try{const latest=read();const next=update(structuredClone(latest.data));if(!valid(next))throw Error('invalid');const before=records(latest.data),after=records(next);const changes:PendingChange[]=[];
+ try{const latest=read();if(update!==referenceMigration&&needsReferenceNumbers(latest.data)){window.alert('جارٍ تجهيز أرقام السجلات السابقة. انتظر اكتمال التجهيز ثم أعد الحفظ.');return false;}const next=numberChangedRecords(update(structuredClone(latest.data)),latest.data);if(!valid(next))throw Error('invalid');const before=records(latest.data),after=records(next);const changes:PendingChange[]=[];
  for(const id of new Set([...before.keys(),...after.keys()])){const a=before.get(id),b=after.get(id);if(JSON.stringify(a?.value)!==JSON.stringify(b?.value)){const row=b||a!;changes.push({collection:row.collection,id:row.id,value:b?.value??null,baseVersion:latest.versions[id]||0});}}
  if(changes.length>100||new TextEncoder().encode(JSON.stringify(changes)).byteLength>120000){window.alert('التعديل كبير جدًا للمزامنة الآمنة. لم يُحفظ؛ قلّل عدد السجلات أو طول الملاحظات ثم أعد المحاولة. سجل الأسعار السابق محفوظ بالكامل.');return false;}
  if(changes.length)commit({...latest,data:next,outbox:[...latest.outbox,{operationId:crypto.randomUUID(),changes}]});return true;
@@ -106,3 +107,5 @@ export function exportLocalBackup(){
  const data=structuredClone(read().data);
  return {format:'almustaqbal-backup',version:1,tenantId:tenant,createdAt:new Date().toISOString(),data};
 }
+
+export function migrateReferenceNumbers(){if(writePermission()!==true||!canWriteLocal()||state.conflict.length)return false;const next=referenceMigration(structuredClone(state.data));if(JSON.stringify(next)===JSON.stringify(state.data))return false;return updateLocal(referenceMigration);}
